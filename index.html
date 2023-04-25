@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LeitzSensor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        #connectButton {
+            position: absolute;
+            top: 130px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: gray;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        #connectButton.connected {
+            background-color: green;
+        }
+
+        img {
+            max-width: 100%;
+            max-height: 100%;
+        }
+    </style>
+    <script>
+        let accelerometerCharacteristic;
+        let notificationTimeout;
+
+        async function connect() {
+            const serviceUuid = "19b10000-e8f2-537e-4f6c-d104768a1214";
+            const characteristicUuid = "19b10010-e8f2-537e-4f6c-d104768a1214";
+
+            try {
+                const device = await navigator.bluetooth.requestDevice({
+                    filters: [{services: [serviceUuid]}]
+                });
+                const server = await device.gatt.connect();
+                const service = await server.getPrimaryService(serviceUuid);
+                accelerometerCharacteristic = await service.getCharacteristic(characteristicUuid);
+                await accelerometerCharacteristic.startNotifications();
+                accelerometerCharacteristic.addEventListener('characteristicvaluechanged', handleNotifications);
+                document.getElementById("connectButton").classList.add("connected");
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        function handleNotifications(event) {
+            const value = event.target.value;
+            const stringValue = new TextDecoder().decode(value);
+            document.getElementById("accelerometerValue").innerHTML = stringValue;
+
+            if (parseFloat(stringValue) < -0.1) {
+                notificationTimeout = setTimeout(showNotification, 1000);
+            } else {
+                clearTimeout(notificationTimeout);
+            }
+
+            if (!accelerometerCharacteristic.service.device.gatt.connected) {
+                document.getElementById("connectButton").classList.remove("connected");
+            }
+        }
+
+        function showNotification() {
+            if (!("Notification" in window)) {
+                console.error("This browser does not support notifications");
+                return;
+            }
+
+            if (Notification.permission !== "granted") {
+                Notification.requestPermission().then((permission) => {
+                    if (permission !== "granted") {
+                        console.error("Notification permission not granted");
+                        return;
+                    }
+                    showNotification();
+                });
+                return;
+            }
+
+            const notification = new Notification("Straighten your sitting posture");
+        }
+
+        // Überprüfe die Verbindung alle 5 Sekunden
+        setInterval(() => {
+            if (!accelerometerCharacteristic?.service?.device?.gatt?.connected) {
+                connect();
+            }
+        }, 5000);
+    </script>
+</head>
+<body>
+    <h1>LeitzSensor</h1>
+    <button id="connectButton" onclick="connect()">Connect your Sensor</button>
+    <div>
+        <img src="b1.jpg" alt="Image">
+        <p>Developer: <span id="accelerometerValue">---</span></p>
+    </div>
+</body>
+</html>
