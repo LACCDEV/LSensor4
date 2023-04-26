@@ -65,9 +65,6 @@
             document.getElementById("accelerometerValue").innerHTML = stringValue;
 
             if (parseFloat(stringValue) < -0.1) {
-                notificationTimeout = setTimeout(showNotification, 1000);
-            } else {
-                clearTimeout(notificationTimeout);
             }
 
             if (!accelerometerCharacteristic.service.device.gatt.connected) {
