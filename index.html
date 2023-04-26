@@ -59,27 +59,24 @@
             }
         }
 
-let lastNotificationTime = 0;
-let notificationTimeout;
+let notificationShown = false;
 
 function handleNotifications(event) {
-  const value = event.target.value;
-  const stringValue = new TextDecoder().decode(value);
-  document.getElementById("accelerometerValue").innerHTML = stringValue;
+    const value = event.target.value;
+    const stringValue = new TextDecoder().decode(value);
+    document.getElementById("accelerometerValue").innerHTML = stringValue;
 
-  if (parseFloat(stringValue) < -0.1) {
-    const now = Date.now();
-    if (now - lastNotificationTime > 30000) { // Show notification only if 30 seconds have passed since last notification
-      notificationTimeout = setTimeout(showNotification, 1000);
-      lastNotificationTime = now;
+    if (parseFloat(stringValue) < -0.1 && !notificationShown) {
+        notificationShown = true;
+        showNotification();
+    } else if (parseFloat(stringValue) >= -0.1 && notificationShown) {
+        notificationShown = false;
+        clearTimeout(notificationTimeout);
     }
-  } else {
-    clearTimeout(notificationTimeout);
-  }
 
-  if (!accelerometerCharacteristic.service.device.gatt.connected) {
-    document.getElementById("connectButton").classList.remove("connected");
-  }
+    if (!accelerometerCharacteristic.service.device.gatt.connected) {
+        document.getElementById("connectButton").classList.remove("connected");
+    }
 }
 
 
